@@ -20,6 +20,9 @@ spec:
       - name: ebpf-agent
         image: rodrick01/ebpf-shield:latest
         imagePullPolicy: IfNotPresent
+        ports:
+        - name: metrics
+          containerPort: 8080
         env:
         - name: SHIELD_IFACE
           value: "eth0"

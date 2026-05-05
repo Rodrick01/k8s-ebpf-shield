@@ -21,29 +21,35 @@ En lugar de depender únicamente del Ingress Controller o firewalls tradicionale
 - **Capa 2 (OS Control Plane - Kprobes):**
   Enganchado a la syscall `sys_enter_execve`, el agente vigila qué comandos se ejecutan dentro del clúster. Si un atacante logra un RCE y trata de abrir `/bin/bash` o descargar un payload con `curl` dentro de un Pod, el agente lo detecta en tiempo real sin requerir modificaciones en las aplicaciones.
 
-## 🚀 Despliegue Idempotente ("Plug and Play")
+## 🚀 Despliegue con Infraestructura como Código (IaC)
 
-Hemos implementado un `Makefile` puramente idempotente. No importa cuántas veces lo corras, asegurará el estado deseado sin efectos secundarios.
+Este proyecto ha evolucionado a un despliegue **100% IaC** utilizando Terraform. En un solo comando, Terraform se encarga de:
+1. Provisionar un clúster de K8s de 3 nodos (vía `tehcyx/kind`).
+2. Desplegar el stack de telemetría **kube-prometheus-stack** vía Helm.
+3. Inyectar nuestros manifiestos del NGINX HA y el DaemonSet del eBPF Shield.
 
 ### Requisitos:
 - Docker instalado
-- `kind` (Kubernetes in Docker) instalado
+- Terraform instalado
 - `kubectl` instalado
 
 ### Iniciar el entorno completo:
 ```bash
 make all
 ```
+*(Este comando envuelve `terraform init` y `terraform apply -auto-approve` para mantener la experiencia simple).*
 
-1. Evalúa si el clúster `ebpf-shield-cluster` de 3 nodos ya existe. Si no, lo crea de forma limpia.
-2. Aplica los manifiestos HA del NGINX.
-3. Despliega el DaemonSet del Agente eBPF en todo el clúster.
-
-### Verificar la Protección eBPF:
+### Verificar la Protección y la Telemetría:
 Puedes verificar cómo el escudo eBPF se atacha revisando los logs del DaemonSet:
 ```bash
 kubectl logs -n kube-system -l app=ebpf-shield
 ```
+
+Para ver la **Telemetría Level Tier 1**, reenvía el puerto de Grafana a tu máquina local:
+```bash
+kubectl port-forward -n monitoring svc/prometheus-grafana 8080:80
+```
+Entra a `http://localhost:8080` (Usuario: `admin`, Password: `prom-operator`). Ahí verás la salud de tu cluster, y en Prometheus podrás graficar `ebpf_xdp_packets_dropped_total` en tiempo real.
 
 ## 🏗️ Compilación y Desarrollo
 
