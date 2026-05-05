@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ebpf-shield
+  namespace: kube-system
+  labels:
+    app: ebpf-shield
+spec:
+  selector:
+    matchLabels:
+      app: ebpf-shield
+  template:
+    metadata:
+      labels:
+        app: ebpf-shield
+    spec:
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: ebpf-agent
+        image: rodrick01/ebpf-shield:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: SHIELD_IFACE
+          value: "eth0"
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+              - SYS_ADMIN
+              - NET_ADMIN
+              - BPF
+        volumeMounts:
+        - name: sys-kernel-debug
+          mountPath: /sys/kernel/debug
+          readOnly: true
+      volumes:
+      - name: sys-kernel-debug
+        hostPath:
+          path: /sys/kernel/debug
